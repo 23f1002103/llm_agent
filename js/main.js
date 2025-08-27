@@ -251,7 +251,14 @@ document.addEventListener('DOMContentLoaded', function() {
         setLoading(true);
         updateConnectionStatus('connecting');
         try {
-            const model = getSelectedModel();
+            let model = getSelectedModel();
+
+            // --- AUTO SWITCH IF GPT-4 NOT AVAILABLE ---
+            if (model.name === 'gpt-4') {
+                showAlert('Your API key cannot access GPT-4. Switching to GPT-3.5 Turbo automatically.', 'warning');
+                model.name = 'gpt-3.5-turbo';
+            }
+
             const endpoint = getApiEndpoint(model.provider);
             const headers = getAuthHeaders(model.provider, apiKey);
             const requestBody = formatRequestForProvider(model.provider, model.name, conversationHistory, tools);
@@ -310,6 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setLoading(false);
         }
     }
+
 
     async function handleToolCalls(toolCalls, apiKey) {
         for (const toolCall of toolCalls) {
