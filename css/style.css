@@ -1,0 +1,248 @@
+/* --- 1. General Setup & Custom Font --- */
+:root {
+    --accent-color: #6a11cb;
+    --accent-gradient: linear-gradient(to right, #2575fc, #6a11cb);
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    color: #f0f0f0;
+    /* overflow: hidden;  */
+}
+
+/* --- 2. Animated Gradient Background --- */
+.background-animation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background: linear-gradient(45deg, #1d2b64, #f8cdda, #1d2b64, #f8cdda);
+    background-size: 400% 400%;
+    animation: gradient-flow 15s ease infinite;
+}
+
+@keyframes gradient-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* --- 3. Model Configuration Card --- */
+.model-config-card {
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.model-config-card .form-label {
+    color: #f0f0f0;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.model-select, .api-key-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f0f0f0;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.model-select:focus, .api-key-input:focus {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.25rem rgba(106, 17, 203, 0.3);
+    color: #f0f0f0;
+}
+
+.model-select option, .model-select optgroup {
+    background: rgba(30, 30, 30, 0.95);
+    color: #f0f0f0;
+}
+
+.model-select optgroup {
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #b0b0b0;
+}
+
+.connection-status .text-success {
+    color: #28a745 !important;
+}
+
+.connection-status .text-warning {
+    color: #ffc107 !important;
+}
+
+.connection-status .text-danger {
+    color: #dc3545 !important;
+}
+
+/* --- 4. Glassmorphism Chat Card --- */
+.chat-card {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    border-radius: 1rem;
+}
+
+/* The new, improved header rule */
+.card-header {
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+}
+
+/* The original footer rule */
+.card-footer {
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto; /* ✅ Scroll inside card */
+    padding: 1.5rem;
+    max-height: calc(100vh - 250px); /* Adjust based on your header/footer height */
+}
+
+/* --- 5. Message Bubble Styling & Animations --- */
+.message {
+    padding: 0.75rem 1.25rem;
+    border-radius: 1.25rem;
+    max-width: 80%;
+    word-wrap: break-word;
+    animation: message-fade-in 0.5s ease;
+}
+
+@keyframes message-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.user {
+    background: var(--accent-gradient);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 0.5rem;
+}
+
+.message.agent {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f0f0f0;
+    align-self: flex-start;
+    border-bottom-left-radius: 0.5rem;
+}
+
+.message.tool, .message.tool-output {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.85em;
+    align-self: flex-start;
+    max-width: 90%;
+    font-family: monospace;
+}
+.message.tool strong { color: #f9a825; } /* Yellow for tool name */
+.message.tool-output .code-block { background-color: rgba(0,0,0,0.3); color: #a5d6a7; padding: 0.5rem; border-radius: 0.5rem; margin-top: 0.5rem; }
+
+/* --- 6. Input Area --- */
+#user-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f0f0f0;
+    font-size: 1rem;
+    padding: 0.75rem 1.25rem;
+}
+#user-input:focus {
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 0.25rem rgba(106, 17, 203, 0.5); /* Accent color glow */
+    border-color: var(--accent-color);
+    color: #f0f0f0;
+}
+.btn-primary {
+    background: var(--accent-gradient);
+    border: none;
+    transition: transform 0.2s ease;
+}
+.btn-primary:hover {
+    transform: scale(1.05);
+}
+
+/* --- 7. Typing Indicator --- */
+#typing-indicator .typing-dot {
+    width: 8px;
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 2px;
+    animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+#typing-indicator .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+#typing-indicator .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing-bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1.0); }
+}
+
+/* --- 8. Custom Scrollbar --- */
+.card-body::-webkit-scrollbar { width: 8px; }
+.card-body::-webkit-scrollbar-track { background: transparent; }
+.card-body::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+.card-body::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.4); }
+
+/* --- 9. Alert Styling --- */
+.alert {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f0f0f0;
+    border-radius: 0.5rem;
+}
+
+.alert-danger {
+    border-color: rgba(220, 53, 69, 0.5);
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.alert-warning {
+    border-color: rgba(255, 193, 7, 0.5);
+    background: rgba(255, 193, 7, 0.1);
+}
+
+.alert-success {
+    border-color: rgba(40, 167, 69, 0.5);
+    background: rgba(40, 167, 69, 0.1);
+}
+
+.alert-info {
+    border-color: rgba(23, 162, 184, 0.5);
+    background: rgba(23, 162, 184, 0.1);
+}
