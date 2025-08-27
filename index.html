@@ -34,14 +34,9 @@
                         </label>
                         <select id="model-select" class="form-select model-select">
                             <optgroup label="OpenAI">
-                                <option value="gpt-4">GPT-4</option>
-                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
                                 <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
                             </optgroup>
                             <optgroup label="Google Gemini">
-                                <option value="gemini-pro">Gemini Pro</option>
-                                <option value="gemini-pro-vision">Gemini Pro Vision</option>
-                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
                                 <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                             </optgroup>
                             <optgroup label="Anthropic">
@@ -76,14 +71,14 @@
             </div>
             <div id="chat-window" class="card-body">
                 <div class="message agent">Hello! How can I assist you today?</div>
-                 <div id="typing-indicator" class="message agent d-none">
+                <div id="typing-indicator" class="message agent d-none">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
                 </div>
             </div>
             <div class="card-footer">
-                 <div id="alert-container" class="px-3"></div>
+                <div id="alert-container" class="px-3"></div>
                 <form id="chat-form" class="p-3">
                     <div class="input-group">
                         <input type="text" id="user-input" class="form-control" placeholder="Ask the agent anything..." required autocomplete="off">
