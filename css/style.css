@@ -246,3 +246,185 @@ body {
     border-color: rgba(23, 162, 184, 0.5);
     background: rgba(23, 162, 184, 0.1);
 }
+
+
+/* --- 10. File Upload Styling --- */
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f0f0f0;
+}
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--accent-color);
+}
+
+.file-preview-container {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.file-preview {
+    display: inline-block;
+    position: relative;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.file-preview #preview-image {
+    max-height: 80px;
+    border-radius: 0.25rem;
+}
+
+.file-preview .btn-close {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.message-image-preview {
+    max-width: 200px;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+
+/* --- 11. Example Prompts Styling --- */
+#example-prompts {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+.prompt-btn {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.prompt-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* --- 12. Copy Button Styling --- */
+.code-block {
+    position: relative;
+}
+.btn-copy {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: #f0f0f0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+.code-block:hover .btn-copy {
+    opacity: 1;
+}
+.btn-copy .bi-check-lg {
+    color: #28a745; /* Green checkmark */
+}
+
+/* --- 13. Streaming Cursor Styling --- */
+.streaming-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 1.2em;
+    background-color: #f0f0f0;
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+}
+@keyframes blink {
+    from, to { background-color: transparent; }
+    50% { background-color: #f0f0f0; }
+}
+
+
+/* --- 11. Scrolling Prompts Marquee --- */
+.marquee {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    box-sizing: border-box;
+    margin-bottom: 2rem;
+}
+
+.marquee-content {
+    display: inline-block;
+    padding-left: 100%;
+    animation: marquee 30s linear infinite;
+}
+
+.prompt-btn {
+    display: inline-block; /* Changed from flex */
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    margin: 0 0.5rem; /* Spacing between items */
+    border-radius: 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.prompt-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+
+/* --- 14. New Chat Button Styling --- */
+#new-chat-btn {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f0f0f0;
+    transition: all 0.3s ease;
+}
+
+#new-chat-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--accent-color);
+    color: #ffffff;
+}
+
+/* --- 15. Input Placeholder Styling --- */
+#user-input::placeholder { /* For modern browsers */
+  color: rgba(240, 240, 240, 0.6);
+  opacity: 1; /* Ensures Firefox displays it correctly */
+}
+
+
+/* --- 16. Custom Dropdown Arrow --- */
+.model-select {
+  -webkit-appearance: none; /* Removes default Safari/Chrome styling */
+  appearance: none; /* Removes default styling */
+  
+  /* Add our custom arrow */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23f0f0f0' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.5rem; /* Make space for the arrow */
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; 
+}
+
+
+/* --- 15. Input Placeholder Styling --- */
+#user-input::placeholder,
+.api-key-input::placeholder { /* For modern browsers */
+  color: rgba(240, 240, 240, 0.6);
+  opacity: 1; /* Ensures Firefox displays it correctly */
+}
