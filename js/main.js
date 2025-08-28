@@ -323,13 +323,15 @@ document.addEventListener('DOMContentLoaded', function() {
         for (const toolCall of toolCalls) {
             const functionName = toolCall.function.name;
             const args = JSON.parse(toolCall.function.arguments);
-            //addMessage('tool', `🔧 Using tool: <strong>${functionName}</strong> with arguments: ${JSON.stringify(args)}`);
+            // UNCOMMENTED THIS LINE
+            addMessage('tool', `🔧 Using tool: <strong>${functionName}</strong> with arguments: ${JSON.stringify(args)}`);
             let result;
             try {
                 if (agentTools[functionName]) {
                     const argValue = Object.values(args)[0];
                     result = await agentTools[functionName](argValue);
-                    //addMessage('tool-output', `✅ Tool Result:<br><div class="code-block">${result}</div>`);
+                    // UNCOMMENTED THIS LINE
+                    addMessage('tool-output', `✅ Tool Result:<br><div class="code-block">${result}</div>`);
                 } else {
                     result = `❌ Unknown tool: ${functionName}`;
                     addMessage('tool-output', result);
@@ -357,4 +359,3 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => apiKeyInput.focus(), 1000);
     }
 });
-
