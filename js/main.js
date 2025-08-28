@@ -66,19 +66,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- UI Helper Functions ---
 
     /**
-     * UPGRADED: Converts simple Markdown (bold, lists) to HTML.
+     * UPGRADED: Converts simple Markdown (bold, lists, newlines) to HTML.
      * @param {string} text - The text with Markdown.
      * @returns {string} - The text with HTML tags.
      */
     function markdownToHtml(text) {
         if (!text) return '';
 
-        let html = text;
+        // First, process bolding across the entire text
+        let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-        // Convert **bold** to <strong>bold</strong>
-        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-        // Convert bullet points (* item) to <ul><li>item</li></ul>
+        // Then, handle lists and paragraphs line by line
         const lines = html.split('\n');
         let inList = false;
         let processedHtml = '';
@@ -96,7 +94,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     processedHtml += '</ul>';
                     inList = false;
                 }
-                processedHtml += line + '<br>';
+                // Add the line as a paragraph, or a break if it's empty
+                if (trimmedLine.length > 0) {
+                    processedHtml += `<p>${line}</p>`;
+                } else {
+                    processedHtml += '<br>';
+                }
             }
         }
 
@@ -106,6 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return processedHtml;
     }
+
 
     function addMessage(role, content) {
         const messageElement = document.createElement('div');
