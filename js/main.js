@@ -64,10 +64,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- UI Helper Functions ---
+
+    /**
+     * UPGRADED: Converts simple Markdown (bold, lists) to HTML.
+     * @param {string} text - The text with Markdown.
+     * @returns {string} - The text with HTML tags.
+     */
+    function markdownToHtml(text) {
+        if (!text) return '';
+
+        let html = text;
+
+        // Convert **bold** to <strong>bold</strong>
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // Convert bullet points (* item) to <ul><li>item</li></ul>
+        const lines = html.split('\n');
+        let inList = false;
+        let processedHtml = '';
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('* ')) {
+                if (!inList) {
+                    processedHtml += '<ul>';
+                    inList = true;
+                }
+                processedHtml += `<li>${trimmedLine.substring(2)}</li>`;
+            } else {
+                if (inList) {
+                    processedHtml += '</ul>';
+                    inList = false;
+                }
+                processedHtml += line + '<br>';
+            }
+        }
+
+        if (inList) {
+            processedHtml += '</ul>';
+        }
+
+        return processedHtml;
+    }
+
     function addMessage(role, content) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', role);
-        messageElement.innerHTML = content;
+        // Use the markdown converter for agent messages
+        const formattedContent = (role === 'agent') ? markdownToHtml(content) : content;
+        messageElement.innerHTML = formattedContent;
         chatWindow.appendChild(messageElement);
         scrollToBottom();
     }
@@ -323,14 +368,12 @@ document.addEventListener('DOMContentLoaded', function() {
         for (const toolCall of toolCalls) {
             const functionName = toolCall.function.name;
             const args = JSON.parse(toolCall.function.arguments);
-            // UNCOMMENTED THIS LINE
             addMessage('tool', `🔧 Using tool: <strong>${functionName}</strong> with arguments: ${JSON.stringify(args)}`);
             let result;
             try {
                 if (agentTools[functionName]) {
                     const argValue = Object.values(args)[0];
                     result = await agentTools[functionName](argValue);
-                    // UNCOMMENTED THIS LINE
                     addMessage('tool-output', `✅ Tool Result:<br><div class="code-block">${result}</div>`);
                 } else {
                     result = `❌ Unknown tool: ${functionName}`;
