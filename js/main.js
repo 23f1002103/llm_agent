@@ -1,5 +1,5 @@
 /**
- * Modern LLM Agent with all features
+ * Modern LLM Agent with Streaming, Copy Button, and Example Prompts
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -132,7 +132,111 @@ document.addEventListener('DOMContentLoaded', function() {
             default: icon.classList.add('text-secondary'); text.textContent = 'Not connected';
         }
     }
+
+    // --- Provider Helper Functions ---
+    function getModelProvider(modelName) {
+        if (modelName.startsWith('gpt-')) return 'openai';
+        if (modelName.startsWith('gemini-')) return 'google';
+        if (modelName.startsWith('claude-')) return 'anthropic';
+        return 'openai';
+    }
+
+    function getApiEndpoint(provider) {
+        switch (provider) {
+            case 'openai': return 'https://api.openai.com/v1/chat/completions';
+            case 'google': return 'https://generativelanguage.googleapis.com/v1beta/models/';
+            case 'anthropic': return 'https://api.anthropic.com/v1/messages';
+            default: return 'https://api.openai.com/v1/chat/completions';
+        }
+    }
+
+    function validateApiKey(provider, key) {
+        if (!key) return false;
+        switch (provider) {
+            case 'openai': return key.startsWith('sk-');
+            case 'google': return key.length > 20;
+            case 'anthropic': return key.startsWith('sk-ant-');
+            default: return key.length > 10;
+        }
+    }
+
+    function formatRequestForProvider(provider, model, messages, tools) {
+        if (provider === 'google' && uploadedFile) {
+            const lastUserMessage = messages[messages.length - 1];
+            const otherMessages = messages.slice(0, -1);
+            const multimodalContent = {
+                role: 'user',
+                parts: [
+                    { text: lastUserMessage.content },
+                    { inline_data: { mime_type: uploadedFile.type, data: uploadedFile.base64 } }
+                ]
+            };
+            return { contents: [...otherMessages.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] })), multimodalContent] };
+        }
+        switch (provider) {
+            case 'openai': return { model, messages, tools, tool_choice: 'auto' };
+            case 'google': return { contents: messages.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] })) };
+            case 'anthropic': return { model, max_tokens: 1000, messages: messages.filter(msg => msg.role !== 'system'), tools };
+            default: return { model, messages, tools, tool_choice: 'auto' };
+        }
+    }
+
+    function getAuthHeaders(provider, apiKey) {
+        switch (provider) {
+            case 'openai': return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
+            case 'google': return { 'Content-Type': 'application/json' };
+            case 'anthropic': return { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' };
+            default: return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
+        }
+    }
+
+    function getSelectedModel() {
+        return { name: modelSelect.value, displayName: modelSelect.options[modelSelect.selectedIndex].text, provider: getModelProvider(modelSelect.value) };
+    }
+
+    function getCurrentApiKey() {
+        const key = apiKeyInput.value.trim();
+        if (key) {
+            currentApiKey = key;
+            return key;
+        }
+        if (typeof LLM_API_KEY !== 'undefined' && LLM_API_KEY !== 'YOUR_OPENAI_API_KEY_HERE') {
+            currentApiKey = LLM_API_KEY;
+            return LLM_API_KEY;
+        }
+        return null;
+    }
+
+    // --- File Handling Logic ---
+    attachFileBtn.addEventListener('click', () => fileInput.click());
+    removeFileBtn.addEventListener('click', clearFileUpload);
+
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const model = getSelectedModel();
+        if (model.provider !== 'google') {
+            showAlert('Image upload is only supported for Google Gemini models.', 'warning');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            uploadedFile = { name: file.name, type: file.type, base64: e.target.result.split(',')[1] };
+            previewImage.src = e.target.result;
+            filePreviewContainer.classList.remove('d-none');
+            showAlert(`Attached ${file.name}. Add a prompt and send.`, 'info');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function clearFileUpload() {
+        uploadedFile = null;
+        fileInput.value = '';
+        filePreviewContainer.classList.add('d-none');
+        previewImage.src = '#';
+    }
     
+    // --- Reset Chat Function ---
     function resetChat() {
         console.log("Resetting chat...");
         conversationHistory = [];
@@ -175,111 +279,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showAlert('New chat started.', 'info');
     }
 
-    // --- Provider Helper Functions ---
-    function getModelProvider(modelName) {
-        if (!modelName) return null;
-        if (modelName.startsWith('gpt-')) return 'openai';
-        if (modelName.startsWith('gemini-')) return 'google';
-        if (modelName.startsWith('claude-')) return 'anthropic';
-        return 'openai';
-    }
-
-    function getApiEndpoint(provider) {
-        switch (provider) {
-            case 'openai': return 'https://api.openai.com/v1/chat/completions';
-            case 'google': return 'https://generativelanguage.googleapis.com/v1beta/models/';
-            case 'anthropic': return 'https://api.anthropic.com/v1/messages';
-            default: return 'https://api.openai.com/v1/chat/completions';
-        }
-    }
-
-    function validateApiKey(provider, key) {
-        if (!key || !provider) return false;
-        switch (provider) {
-            case 'openai': return key.startsWith('sk-');
-            case 'google': return key.length > 20;
-            case 'anthropic': return key.startsWith('sk-ant-');
-            default: return key.length > 10;
-        }
-    }
-
-    function formatRequestForProvider(provider, model, messages, tools) {
-        if (provider === 'google' && uploadedFile) {
-            const lastUserMessage = messages[messages.length - 1];
-            const otherMessages = messages.slice(0, -1);
-            const multimodalContent = {
-                role: 'user',
-                parts: [
-                    { text: lastUserMessage.content },
-                    { inline_data: { mime_type: uploadedFile.type, data: uploadedFile.base64 } }
-                ]
-            };
-            return { contents: [...otherMessages.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] })), multimodalContent] };
-        }
-        switch (provider) {
-            case 'openai': return { model, messages, tools, tool_choice: 'auto' };
-            case 'google': return { contents: messages.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] })) };
-            case 'anthropic': return { model, max_tokens: 1000, messages: messages.filter(msg => msg.role !== 'system'), tools };
-            default: return { model, messages, tools, tool_choice: 'auto' };
-        }
-    }
-
-    function getAuthHeaders(provider, apiKey) {
-        switch (provider) {
-            case 'openai': return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
-            case 'google': return { 'Content-Type': 'application/json' };
-            case 'anthropic': return { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' };
-            default: return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
-        }
-    }
-
-    function getSelectedModel() {
-        if (modelSelect.value === "") return null;
-        return { name: modelSelect.value, displayName: modelSelect.options[modelSelect.selectedIndex].text, provider: getModelProvider(modelSelect.value) };
-    }
-
-    function getCurrentApiKey() {
-        const key = apiKeyInput.value.trim();
-        if (key) {
-            currentApiKey = key;
-            return key;
-        }
-        if (typeof LLM_API_KEY !== 'undefined' && LLM_API_KEY !== 'YOUR_OPENAI_API_KEY_HERE') {
-            currentApiKey = LLM_API_KEY;
-            return LLM_API_KEY;
-        }
-        return null;
-    }
-
-    // --- File Handling Logic ---
-    attachFileBtn.addEventListener('click', () => fileInput.click());
-    removeFileBtn.addEventListener('click', clearFileUpload);
-
-    fileInput.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const model = getSelectedModel();
-        if (!model || model.provider !== 'google') {
-            showAlert('Image upload is only supported for Google Gemini models.', 'warning');
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            uploadedFile = { name: file.name, type: file.type, base64: e.target.result.split(',')[1] };
-            previewImage.src = e.target.result;
-            filePreviewContainer.classList.remove('d-none');
-            showAlert(`Attached ${file.name}. Add a prompt and send.`, 'info');
-        };
-        reader.readAsDataURL(file);
-    });
-
-    function clearFileUpload() {
-        uploadedFile = null;
-        fileInput.value = '';
-        filePreviewContainer.classList.add('d-none');
-        previewImage.src = '#';
-    }
-    
     // --- Event Listeners ---
     newChatBtn.addEventListener('click', resetChat);
 
@@ -287,11 +286,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const key = this.value.trim();
         const model = getSelectedModel();
         if (key) {
-            if (model && validateApiKey(model.provider, key)) {
+            if (validateApiKey(model.provider, key)) {
                 updateConnectionStatus('connected');
                 showAlert(`API key looks valid for ${model.provider.toUpperCase()}! Ready to chat.`, 'success');
-            } else if (model) {
+            } else {
                 updateConnectionStatus('error', 'Invalid key format');
+                showAlert(`API key format invalid for ${model.provider.toUpperCase()}`, 'warning');
             }
         } else {
             updateConnectionStatus('disconnected');
@@ -300,16 +300,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     modelSelect.addEventListener('change', function() {
         const model = getSelectedModel();
-        if(model) {
-            showAlert(`Switched to ${model.displayName} (${model.provider.toUpperCase()})`, 'info');
-            const key = apiKeyInput.value.trim();
-            if (key) {
-                if (validateApiKey(model.provider, key)) {
-                    updateConnectionStatus('connected');
-                } else {
-                    updateConnectionStatus('error', 'Invalid key for this provider');
-                    showAlert(`Please enter a valid ${model.provider.toUpperCase()} API key`, 'warning');
-                }
+        showAlert(`Switched to ${model.displayName} (${model.provider.toUpperCase()})`, 'info');
+        const key = apiKeyInput.value.trim();
+        if (key) {
+            if (validateApiKey(model.provider, key)) {
+                updateConnectionStatus('connected');
+            } else {
+                updateConnectionStatus('error', 'Invalid key for this provider');
+                showAlert(`Please enter a valid ${model.provider.toUpperCase()} API key`, 'warning');
             }
         }
     });
@@ -337,13 +335,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Core Agent Logic ---
     chatForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-
-        // NEW: Check if a model is selected
-        if (!getSelectedModel()) {
-            showAlert('Please select an LLM model first.', 'warning');
-            return;
-        }
-
         const userMessage = userInput.value.trim();
         const apiKey = getCurrentApiKey();
         if (!userMessage && !uploadedFile) return;
@@ -352,12 +343,10 @@ document.addEventListener('DOMContentLoaded', function() {
             apiKeyInput.focus();
             return;
         }
-
         const promptsContainer = document.getElementById('example-prompts');
         if (promptsContainer) {
             promptsContainer.style.display = 'none';
         }
-
         let messageContent = userMessage;
         if (uploadedFile) {
             messageContent += `<br><img src="${previewImage.src}" class="message-image-preview" alt="Uploaded Image">`;
@@ -399,8 +388,6 @@ document.addEventListener('DOMContentLoaded', function() {
             let fullResponse = "";
             let toolCalls = [];
             const agentMessageElement = addMessage('agent', '<span class="streaming-cursor"></span>');
-            
-            let accumulatedToolCallChunks = {};
 
             while (true) {
                 const { value, done } = await reader.read();
@@ -420,14 +407,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 scrollToBottom();
                             }
                             if (delta.tool_calls) {
-                                for(const toolCallChunk of delta.tool_calls) {
-                                    if(toolCallChunk.index !== undefined) {
-                                        if(!accumulatedToolCallChunks[toolCallChunk.index]) {
-                                            accumulatedToolCallChunks[toolCallChunk.index] = { id: '', type: 'function', function: { name: '', arguments: '' } };
-                                        }
-                                        if(toolCallChunk.id) accumulatedToolCallChunks[toolCallChunk.index].id = toolCallChunk.id;
-                                        if(toolCallChunk.function.name) accumulatedToolCallChunks[toolCallChunk.index].function.name = toolCallChunk.function.name;
-                                        if(toolCallChunk.function.arguments) accumulatedToolCallChunks[toolCallChunk.index].function.arguments += toolCallChunk.function.arguments;
+                                for (const toolCall of delta.tool_calls) {
+                                    if (toolCalls[toolCall.index]) {
+                                        toolCalls[toolCall.index].function.arguments += toolCall.function.arguments;
+                                    } else {
+                                        toolCalls[toolCall.index] = { ...toolCall, type: 'function' };
                                     }
                                 }
                             }
@@ -437,7 +421,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             agentMessageElement.innerHTML = markdownToHtml(fullResponse);
-            toolCalls = Object.values(accumulatedToolCallChunks);
             const assistantMessage = { role: 'assistant', content: fullResponse };
             if (toolCalls.length > 0) {
                 assistantMessage.tool_calls = toolCalls;
@@ -456,8 +439,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const errorMessage = error.message.toLowerCase();
             if (errorMessage.includes('incorrect api key')) {
                 showAlert('The API key you provided is incorrect. Please check it and try again.');
-            } else if (errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
-                showAlert('You have exceeded your API quota or rate limit. Please check your account status.');
             } else {
                 showAlert(`An unexpected error occurred: ${error.message}`);
             }
@@ -544,4 +525,3 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => apiKeyInput.focus(), 1000);
     }
 });
-
