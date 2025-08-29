@@ -31,8 +31,11 @@
                     <div class="col-md-4">
                         <label for="model-select" class="form-label"><i class="bi bi-cpu me-2"></i>LLM Model</label>
                         <select id="model-select" class="form-select model-select">
+                            <!-- NEW: Placeholder Option -->
+                            <option value="" selected disabled>Choose your model</option>
                             <optgroup label="OpenAI">
-                                <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
+                                <!-- REMOVED 'selected' from here -->
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                                 <option value="gpt-4-turbo">GPT-4 Turbo</option>
                             </optgroup>
                             <optgroup label="Google Gemini">
@@ -67,7 +70,6 @@
                     <i class="bi bi-diagram-3 me-2 fs-4"></i>
                     Vectra
                 </h5>
-                <!-- NEW: New Chat Button -->
                 <button id="new-chat-btn" class="btn btn-sm">
                     <i class="bi bi-plus-lg me-1"></i> New Chat
                 </button>
@@ -124,3 +126,4 @@
     <script src="js/main.js"></script>
 </body>
 </html>
+
