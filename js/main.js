@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- UI Helper Functions ---
     function markdownToHtml(text) {
         if (!text) return '';
+        text = text.trim();
         let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         const lines = html.split('\n');
         let inList = false;
