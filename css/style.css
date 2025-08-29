@@ -433,3 +433,36 @@ body {
 .message p:last-child {
   margin-bottom: 0;
 }
+
+/* --- 18. API Key Settings Icon & Modal --- */
+#api-key-settings-btn {
+  cursor: pointer;
+  color: rgba(240, 240, 240, 0.7);
+  font-size: 1.1rem; /* Makes the icon slightly larger */
+  vertical-align: middle; /* Improves alignment with the text */
+  transition: all 0.3s ease; /* Animate all properties */
+}
+
+#api-key-settings-btn:hover {
+  color: #ffffff;
+  transform: scale(1.2) rotate(90deg); /* Scales up and rotates on hover */
+}
+
+.modal-content {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(10, 10, 20, 0.7); /* Darker for better readability */
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  border-radius: 1rem;
+  color: #f0f0f0;
+}
+
+.modal-header, .modal-footer {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-content .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}

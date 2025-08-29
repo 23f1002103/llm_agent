@@ -1,5 +1,5 @@
 /**
- * Modern LLM Agent with all features
+ * Modern LLM Agent with all features including localStorage API key management
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -19,25 +19,70 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewImage = document.getElementById('preview-image');
     const removeFileBtn = document.getElementById('remove-file-btn');
     const newChatBtn = document.getElementById('new-chat-btn');
+    const confirmClearApiKeyBtn = document.getElementById('confirm-clear-api-key-btn');
+    const apiKeyModalEl = document.getElementById('apiKeyModal');
+    const apiKeyModal = new bootstrap.Modal(apiKeyModalEl);
+    const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
 
     // --- State Management ---
     let conversationHistory = [];
-    let currentApiKey = '';
     let uploadedFile = null;
 
     // --- Tool Definitions ---
     const tools = [
         { type: "function", function: { name: "googleSearch", description: "Get information from the web using Google Search.", parameters: { type: "object", properties: { query: { type: "string", description: "The search query to use." } }, required: ["query"] } } },
         { type: "function", function: { name: "aiPipe", description: "Use the AI Pipe for flexible dataflows or complex tasks.", parameters: { type: "object", properties: { data: { type: "object", description: "The data object to send to the pipe." } }, required: ["data"] } } },
-        { type: "function", function: { name: "executeJavascript", description: "Execute a string of JavaScript code in a sandboxed environment.", parameters: { type: "object", properties: { code: { type: "string", description: "The JavaScript code to execute." } }, required: ["code"] } } }
+        { type: "function", function: { name: "executeJavascript", description: "Execute a string of JavaScript code in a sandboxed environment.", parameters: { type: "object", properties: { code: { type: "string", description: "The JavaScript code to execute." } }, required: ["code"] } } },
+        {
+            type: "function",
+            function: {
+                name: "createChart",
+                description: "Create a chart or graph visualization using Chart.js. Supports types like 'bar', 'line', 'pie', 'doughnut', and 'radar'.",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        chartConfig: {
+                            type: "object",
+                            description: "A configuration object that follows the Chart.js structure. It must include 'type', 'data', and optionally 'options'. The 'data' object needs 'labels' (an array of strings) and 'datasets' (an array of objects, each with a 'label' and a 'data' array of numbers).",
+                            properties: {
+                                type: { type: "string", enum: ["bar", "line", "pie", "doughnut", "radar", "polarArea"] },
+                                data: {
+                                    type: "object",
+                                    properties: {
+                                        labels: { type: "array", items: { type: "string" } },
+                                        datasets: {
+                                            type: "array",
+                                            items: {
+                                                type: "object",
+                                                properties: {
+                                                    label: { type: "string" },
+                                                    data: { type: "array", items: { type: "number" } }
+                                                },
+                                                required: ["label", "data"]
+                                            }
+                                        }
+                                    },
+                                    required: ["labels", "datasets"]
+                                },
+                                options: { type: "object" }
+                            },
+                            required: ["type", "data"]
+                        }
+                    },
+                    required: ["chartConfig"]
+                }
+            }
+        }
     ];
 
-    // --- Scroll Helper ---
+    // --- Helper Functions ---
     function scrollToBottom() {
-        chatWindow.scrollTop = chatWindow.scrollHeight;
+        chatWindow.scrollTo({
+            top: chatWindow.scrollHeight,
+            behavior: 'smooth'
+        });
     }
 
-    // --- UI Helper Functions ---
     function markdownToHtml(text) {
         if (!text) return '';
         text = text.trim();
@@ -60,13 +105,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if (trimmedLine.length > 0) {
                     processedHtml += `<p>${line}</p>`;
-                } else {
-                    processedHtml += '<br>';
                 }
             }
         }
         if (inList) {
             processedHtml += '</ul>';
+        }
+        if (processedHtml.endsWith('<br>')) {
+            processedHtml = processedHtml.slice(0, -4);
         }
         return processedHtml;
     }
@@ -239,17 +285,36 @@ document.addEventListener('DOMContentLoaded', function() {
         return { name: modelSelect.value, displayName: modelSelect.options[modelSelect.selectedIndex].text, provider: getModelProvider(modelSelect.value) };
     }
 
+    // --- API Key Management with localStorage ---
     function getCurrentApiKey() {
         const key = apiKeyInput.value.trim();
         if (key) {
-            currentApiKey = key;
             return key;
         }
         if (typeof LLM_API_KEY !== 'undefined' && LLM_API_KEY !== 'YOUR_OPENAI_API_KEY_HERE') {
-            currentApiKey = LLM_API_KEY;
             return LLM_API_KEY;
         }
         return null;
+    }
+
+    function loadApiKey() {
+        const savedKey = localStorage.getItem('vectra_api_key');
+        if (savedKey) {
+            apiKeyInput.value = savedKey;
+            apiKeyInput.dispatchEvent(new Event('input'));
+        }
+    }
+
+    function saveApiKey(key) {
+        localStorage.setItem('vectra_api_key', key);
+    }
+
+    function clearApiKey() {
+        localStorage.removeItem('vectra_api_key');
+        apiKeyInput.value = '';
+        apiKeyInput.dispatchEvent(new Event('input'));
+        apiKeyModal.hide();
+        showAlert('API key has been cleared from your browser.', 'info');
     }
 
     // --- File Handling Logic ---
@@ -283,14 +348,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- Event Listeners ---
     newChatBtn.addEventListener('click', resetChat);
+    confirmClearApiKeyBtn.addEventListener('click', clearApiKey);
 
     apiKeyInput.addEventListener('input', function() {
         const key = this.value.trim();
+        saveApiKey(key);
+        
         const model = getSelectedModel();
         if (key) {
             if (model && validateApiKey(model.provider, key)) {
                 updateConnectionStatus('connected');
-                showAlert(`API key looks valid for ${model.provider.toUpperCase()}! Ready to chat.`, 'success');
             } else if (model) {
                 updateConnectionStatus('error', 'Invalid key format');
             }
@@ -315,6 +382,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Scroll button logic
+    if (scrollToBottomBtn) {
+        scrollToBottomBtn.addEventListener('click', scrollToBottom);
+        chatWindow.addEventListener('scroll', () => {
+            if (chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight > 300) {
+                scrollToBottomBtn.classList.add('visible');
+            } else {
+                scrollToBottomBtn.classList.remove('visible');
+            }
+        });
+    }
+
     chatWindow.addEventListener('click', (event) => {
         const promptBtn = event.target.closest('.prompt-btn');
         if (promptBtn) {
@@ -339,8 +418,9 @@ document.addEventListener('DOMContentLoaded', function() {
     chatForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        // NEW: Check if a model is selected
-        if (!getSelectedModel()) {
+        const model = getSelectedModel();
+
+        if (!model) {
             showAlert('Please select an LLM model first.', 'warning');
             return;
         }
@@ -348,8 +428,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const userMessage = userInput.value.trim();
         const apiKey = getCurrentApiKey();
         if (!userMessage && !uploadedFile) return;
+
         if (!apiKey) {
-            showAlert('Please enter your API key first.', 'warning');
+            let providerName = model.provider.charAt(0).toUpperCase() + model.provider.slice(1);
+            if (model.provider === 'openai') {
+                providerName = 'OpenAI';
+            }
+            showAlert(`Please enter your ${providerName} API key first.`, 'warning');
             apiKeyInput.focus();
             return;
         }
@@ -504,7 +589,11 @@ document.addEventListener('DOMContentLoaded', function() {
             setLoading(false);
             updateConnectionStatus('error', 'API Error');
             const errorMessage = error.message.toLowerCase();
-            if (errorMessage.includes('incorrect api key')) {
+            const model = getSelectedModel();
+
+            if (model && model.provider === 'anthropic' && errorMessage.includes('failed to fetch')) {
+                showAlert('Could not connect to Anthropic. This often happens if the API key is missing or incorrect.');
+            } else if (errorMessage.includes('incorrect api key')) {
                 showAlert('The API key you provided is incorrect. Please check it and try again.');
             } else {
                 showAlert(`An unexpected error occurred: ${error.message}`);
@@ -522,7 +611,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (agentTools[functionName]) {
                     const argValue = Object.values(args)[0];
                     result = await agentTools[functionName](argValue);
-                    addMessage('tool-output', `✅ Tool Result:<br><div class="code-block">${result}</div>`);
+                    if (functionName !== 'createChart') { // Don't show a result message for charts
+                        addMessage('tool-output', `✅ Tool Result:<br><div class="code-block">${result}</div>`);
+                    }
                 } else {
                     result = `❌ Unknown tool: ${functionName}`;
                     addMessage('tool-output', result);
@@ -538,10 +629,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Init ---
     console.log("Modern LLM Agent initialized successfully!");
-    if (!getCurrentApiKey()) {
-        showAlert('Welcome! Please enter your API key to get started.', 'info');
-    }
+    loadApiKey(); // Load the saved API key on startup
     if (!apiKeyInput.value.trim()) {
+        showAlert('Welcome! Please enter your API key to get started.', 'info');
         setTimeout(() => apiKeyInput.focus(), 1000);
     }
 });
