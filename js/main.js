@@ -1,5 +1,5 @@
 /**
- * Modern LLM Agent with all features including localStorage API key management
+ * Modern LLM Agent with Chat Export and Usage Analytics
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatForm = document.getElementById('chat-form');
     const userInput = document.getElementById('user-input');
     const chatWindow = document.getElementById('chat-window');
+    const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); // <-- ADDED
     const alertContainer = document.getElementById('alert-container');
     const modelSelect = document.getElementById('model-select');
     const apiKeyInput = document.getElementById('api-key-input');
@@ -22,11 +23,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmClearApiKeyBtn = document.getElementById('confirm-clear-api-key-btn');
     const apiKeyModalEl = document.getElementById('apiKeyModal');
     const apiKeyModal = new bootstrap.Modal(apiKeyModalEl);
-    const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
+    
+    // NEW: Export/Analytics elements
+    const exportBtn = document.getElementById('export-btn');
+    const analyticsBtn = document.getElementById('analytics-btn');
+    const analyticsModal = new bootstrap.Modal(document.getElementById('analyticsModal'));
+    const resetAnalyticsBtn = document.getElementById('reset-analytics-btn');
 
     // --- State Management ---
     let conversationHistory = [];
     let uploadedFile = null;
+    let sessionStartTime = Date.now();
+
+    // --- Analytics State ---
+    let analytics = {
+        totalMessages: 0,
+        apiCalls: 0,
+        toolCalls: 0,
+        toolUsage: {},
+        modelUsage: {},
+        sessionStart: Date.now()
+    };
 
     // --- Tool Definitions ---
     const tools = [
@@ -124,6 +141,10 @@ document.addEventListener('DOMContentLoaded', function() {
         messageElement.innerHTML = formattedContent;
         chatWindow.appendChild(messageElement);
 
+        // Update analytics
+        analytics.totalMessages++;
+        updateAnalyticsStorage();
+
         if (role === 'tool-output') {
             const codeBlock = messageElement.querySelector('.code-block');
             if (codeBlock) {
@@ -219,7 +240,106 @@ document.addEventListener('DOMContentLoaded', function() {
 
         clearFileUpload();
         document.getElementById('alert-container').innerHTML = '';
+        
+        // Reset session start time
+        sessionStartTime = Date.now();
+        analytics.sessionStart = Date.now();
+        updateAnalyticsStorage();
+        
         showAlert('New chat started.', 'info');
+    }
+
+    // --- Analytics Functions ---
+    function loadAnalytics() {
+        const saved = localStorage.getItem('vectra_analytics');
+        if (saved) {
+            analytics = { ...analytics, ...JSON.parse(saved) };
+        }
+    }
+
+    function updateAnalyticsStorage() {
+        localStorage.setItem('vectra_analytics', JSON.stringify(analytics));
+    }
+
+    function updateAnalyticsDisplay() {
+        document.getElementById('total-messages').textContent = analytics.totalMessages;
+        document.getElementById('api-calls').textContent = analytics.apiCalls;
+        document.getElementById('tool-calls').textContent = analytics.toolCalls;
+        
+        // Calculate session time
+        const sessionTime = Math.floor((Date.now() - analytics.sessionStart) / 1000 / 60);
+        document.getElementById('session-time').textContent = `${sessionTime}m`;
+
+        // Update tool usage
+        const toolUsageList = document.getElementById('tool-usage-list');
+        toolUsageList.innerHTML = '';
+        if (Object.keys(analytics.toolUsage).length === 0) {
+            toolUsageList.innerHTML = '<div class="tool-usage-item"><span>No tools used yet</span></div>';
+        } else {
+            const sortedTools = Object.entries(analytics.toolUsage).sort((a, b) => b[1] - a[1]);
+            sortedTools.forEach(([tool, count]) => {
+                const item = document.createElement('div');
+                item.className = 'tool-usage-item';
+                item.innerHTML = `<span>${tool}</span><span class="badge bg-primary">${count}</span>`;
+                toolUsageList.appendChild(item);
+            });
+        }
+
+        // Update model usage
+        const modelUsageList = document.getElementById('model-usage-list');
+        modelUsageList.innerHTML = '';
+        if (Object.keys(analytics.modelUsage).length === 0) {
+            modelUsageList.innerHTML = '<div class="model-usage-item"><span>No models used yet</span></div>';
+        } else {
+            const sortedModels = Object.entries(analytics.modelUsage).sort((a, b) => b[1] - a[1]);
+            sortedModels.forEach(([model, count]) => {
+                const item = document.createElement('div');
+                item.className = 'model-usage-item';
+                item.innerHTML = `<span>${model}</span><span class="badge bg-success">${count}</span>`;
+                modelUsageList.appendChild(item);
+            });
+        }
+    }
+
+    function trackApiCall(modelName) {
+        analytics.apiCalls++;
+        if (analytics.modelUsage[modelName]) {
+            analytics.modelUsage[modelName]++;
+        } else {
+            analytics.modelUsage[modelName] = 1;
+        }
+        updateAnalyticsStorage();
+    }
+
+    function trackToolCall(toolName) {
+        analytics.toolCalls++;
+        if (analytics.toolUsage[toolName]) {
+            analytics.toolUsage[toolName]++;
+        } else {
+            analytics.toolUsage[toolName] = 1;
+        }
+        updateAnalyticsStorage();
+    }
+
+    // --- Export Function ---
+    function exportChat() {
+        const exportData = {
+            timestamp: new Date().toISOString(),
+            model: getSelectedModel(),
+            conversationHistory: conversationHistory,
+            analytics: analytics,
+            sessionDuration: Date.now() - sessionStartTime
+        };
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `vectra-chat-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+        link.click();
+        
+        showAlert('Chat exported successfully!', 'success');
     }
 
     // --- Provider Helper Functions ---
@@ -350,6 +470,26 @@ document.addEventListener('DOMContentLoaded', function() {
     newChatBtn.addEventListener('click', resetChat);
     confirmClearApiKeyBtn.addEventListener('click', clearApiKey);
 
+    // Export/Analytics Event Listeners
+    exportBtn.addEventListener('click', exportChat);
+    
+    analyticsBtn.addEventListener('click', updateAnalyticsDisplay);
+    resetAnalyticsBtn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to reset all analytics data?')) {
+            analytics = {
+                totalMessages: 0,
+                apiCalls: 0,
+                toolCalls: 0,
+                toolUsage: {},
+                modelUsage: {},
+                sessionStart: Date.now()
+            };
+            updateAnalyticsStorage();
+            updateAnalyticsDisplay();
+            showAlert('Analytics data has been reset.', 'info');
+        }
+    });
+
     apiKeyInput.addEventListener('input', function() {
         const key = this.value.trim();
         saveApiKey(key);
@@ -381,18 +521,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
-    // Scroll button logic
-    if (scrollToBottomBtn) {
-        scrollToBottomBtn.addEventListener('click', scrollToBottom);
-        chatWindow.addEventListener('scroll', () => {
-            if (chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight > 300) {
-                scrollToBottomBtn.classList.add('visible');
-            } else {
-                scrollToBottomBtn.classList.remove('visible');
-            }
-        });
-    }
 
     chatWindow.addEventListener('click', (event) => {
         const promptBtn = event.target.closest('.prompt-btn');
@@ -412,6 +540,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 1500);
             }).catch(err => console.error('Failed to copy text: ', err));
         }
+    });
+
+    // --- Scroll-to-Bottom Button Logic ---  // <-- ADDED
+    chatWindow.addEventListener('scroll', () => {
+        // Check if the user has scrolled up from the bottom
+        if (chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight > 100) {
+            scrollToBottomBtn.classList.add('visible');
+        } else {
+            scrollToBottomBtn.classList.remove('visible');
+        }
+    });
+
+    scrollToBottomBtn.addEventListener('click', () => {
+        scrollToBottom(); // Re-use your existing function
     });
 
     // --- Core Agent Logic ---
@@ -459,6 +601,9 @@ document.addEventListener('DOMContentLoaded', function() {
         setLoading(true);
         updateConnectionStatus('connecting');
         const model = getSelectedModel();
+
+        // Track API call
+        trackApiCall(model.displayName);
 
         if (model.provider !== 'openai') {
             await runNonStreamingAgentLoop(apiKey);
@@ -605,14 +750,18 @@ document.addEventListener('DOMContentLoaded', function() {
         for (const toolCall of toolCalls) {
             const functionName = toolCall.function.name;
             const args = JSON.parse(toolCall.function.arguments);
-            addMessage('tool', `🔧 Using tool: <strong>${functionName}</strong> with arguments: ${JSON.stringify(args)}`);
+            //addMessage('tool', `🔧 Using tool: <strong>${functionName}</strong> with arguments: ${JSON.stringify(args)}`);
+            
+            // Track tool usage
+            trackToolCall(functionName);
+            
             let result;
             try {
                 if (agentTools[functionName]) {
                     const argValue = Object.values(args)[0];
                     result = await agentTools[functionName](argValue);
                     if (functionName !== 'createChart') { // Don't show a result message for charts
-                        addMessage('tool-output', `✅ Tool Result:<br><div class="code-block">${result}</div>`);
+                        //addMessage('tool-output', `✅ Tool Result:<br><div class="code-block">${result}</div>`);
                     }
                 } else {
                     result = `❌ Unknown tool: ${functionName}`;
@@ -630,6 +779,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Init ---
     console.log("Modern LLM Agent initialized successfully!");
     loadApiKey(); // Load the saved API key on startup
+    loadAnalytics(); // Load analytics data
+    
     if (!apiKeyInput.value.trim()) {
         showAlert('Welcome! Please enter your API key to get started.', 'info');
         setTimeout(() => apiKeyInput.focus(), 1000);
